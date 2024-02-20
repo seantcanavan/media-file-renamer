@@ -22,18 +22,20 @@ def timestamp_prefix_exists(filename):
 
 
 def rename_files(directory):
-    """Recursively rename files with a timestamp prefix, if not already present, and ensure lower-cased extension."""
+    """Recursively rename files with a timestamp prefix, ensure lower-cased extension, and skip if the new filename exists."""
     for item in directory.rglob('*'):  # rglob method for recursive globbing
         if item.is_file() and item.suffix.lower() in MEDIA_EXTENSIONS:
             if not timestamp_prefix_exists(item.name):  # Check if filename starts with timestamp
                 creation_time = item.stat().st_ctime
                 formatted_timestamp = format_timestamp(creation_time)
-                # Split the filename from its extension and convert the extension to lowercase
                 name_without_extension, extension = os.path.splitext(item.name)
                 new_name = f"{formatted_timestamp}_{name_without_extension}{extension.lower()}"
                 new_path = item.parent / new_name
-                print(f"Renaming {item} to {new_path}")
-                os.rename(item, new_path)
+                if not new_path.exists():  # Check if the new file name already exists
+                    print(f"Renaming {item} to {new_path}")
+                    os.rename(item, new_path)
+                else:
+                    print(f"Skipping rename, new filename already exists: {new_path}")
             else:
                 print(f"Skipping {item}, already has timestamp.")
 
