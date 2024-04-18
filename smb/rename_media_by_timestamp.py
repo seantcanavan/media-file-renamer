@@ -4,7 +4,7 @@ import re  # Import the regular expressions library
 from pathlib import Path
 
 # Define the directory to start from
-start_directory = Path('/media/userhome/media/test_pics_backup')
+start_directory = Path('/media/userhome/media/backup/pictures')
 
 # Define common multimedia file extensions in lower case
 MEDIA_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.mp4', '.mp3', '.avi', '.mov', '.mkv', '.heic', '.mov', '.bmp', '.tif', '.tiff', '.bmp2', '.tiff2', '.aae']
@@ -35,7 +35,7 @@ def rename_files(directory):
                     print(f"Renaming {item} to {new_path}")
                     os.rename(item, new_path)
                 else:
-                    print(f"Skipping rename, new filename already exists: {new_path}")
+                    print(f"Item {item} has duplicate target {new_path}, will not rename")
             else:
                 print(f"Skipping {item}, already has timestamp.")
 
