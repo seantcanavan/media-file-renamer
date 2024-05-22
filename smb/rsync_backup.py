@@ -3,8 +3,10 @@ import sys
 
 del_string = "deleting "
 
+destinations = ["/media/userhome/files/backup/", "/media/userhome/ssd_smb/backup/", "/run/media/userhome/extra_storage/backup"]
 
-def run_rsync(dry_run=True):
+
+def run_rsync(destination: str, dry_run=True):
     command = [
         "rsync",
         "-Prv",
@@ -12,7 +14,7 @@ def run_rsync(dry_run=True):
         "--delete-during",
         "--bwlimit=20480",
         "/media/userhome/media/backup/",
-        "/media/userhome/files/backup/"
+        destination
     ]
     if dry_run:
         command.append("--dry-run")
@@ -22,25 +24,26 @@ def run_rsync(dry_run=True):
 
 
 def main():
-    print("performing dry-run")
-    stdout, stderr = run_rsync()
-    print(f"stdout: {stdout}")
-    print(f"stderr: {stderr}")
-    if del_string in stdout:
-        print(f"{del_string} located in stdout - verifying you actually want to delete")
-        while True:
-            user_input = input("Type 'I approve THESE files TO be DELETED' to proceed with deletion: ")
-            if user_input == "I approve THESE files TO be DELETED":
-                print("Executing actual deletion...")
-                stdout, stderr = run_rsync(dry_run=False)
-                print(stdout)
-                break
-            else:
-                print("Input did not match. Please type the approval text exactly as shown, or press CTRL+C to exit.")
-    else:
-        print("No files to delete. Running rsync without --dry-run.")
-        stdout, stderr = run_rsync(dry_run=False)
-        print(stdout)
+    for destination in destinations:
+        print(f"performing dry-run. destination is {destination}")
+        stdout, stderr = run_rsync(destination=destination, dry_run=True)
+        print(f"stdout: {stdout}")
+        print(f"stderr: {stderr}")
+        if del_string in stdout:
+            print(f"{del_string} located in stdout - verifying you actually want to delete")
+            while True:
+                user_input = input("Type 'I approve THESE files TO be DELETED' to proceed with deletion: ")
+                if user_input == "I approve THESE files TO be DELETED":
+                    print("Executing actual deletion...")
+                    stdout, stderr = run_rsync(destination=destination, dry_run=False)
+                    print(stdout)
+                    break
+                else:
+                    print("Input did not match. Please type the approval text exactly as shown, or press CTRL+C to exit.")
+        else:
+            print("No files to delete. Running rsync without --dry-run.")
+            stdout, stderr = run_rsync(destination=destination, dry_run=False)
+            print(stdout)
 
 
 if __name__ == "__main__":
