@@ -3,7 +3,7 @@ import sys
 
 del_string = "deleting "
 
-destinations = ["/media/userhome/files/backup/", "/media/userhome/ssd_smb/backup/", "/run/media/userhome/extra_storage/backup"]
+destinations = ["/media/userhome/files/backup/", "/media/userhome/cold_smb/backup/"]
 
 
 def run_rsync(destination: str, dry_run=True):
@@ -13,7 +13,7 @@ def run_rsync(destination: str, dry_run=True):
         "--size-only",
         "--delete-during",
         "--bwlimit=20480",
-        "/media/userhome/media/backup/",
+        "/media/userhome/smb/backup/",
         destination
     ]
     if dry_run:
