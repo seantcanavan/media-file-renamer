@@ -3,7 +3,11 @@ import sys
 
 del_string = "deleting "
 
-destinations = ["/media/userhome/files/backup/", "/media/userhome/cold_smb/backup/"]
+destinations = [
+    "/media/userhome/cold_smb/backup/",
+    "/media/userhome/colder_smb/backup/",
+    "/media/userhome/files/backup/",
+]
 
 
 def run_rsync(destination: str, dry_run=True):
