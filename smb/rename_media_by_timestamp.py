@@ -36,8 +36,8 @@ def rename_files(directory):
                     os.rename(item, new_path)
                 else:
                     print(f"Item {item} has duplicate target {new_path}, will not rename")
-            else:
-                print(f"Skipping {item}, already has timestamp.")
+            # else:
+            #     print(f"Skipping {item}, already has timestamp.")
 
 
 # Run the script
