@@ -6,7 +6,6 @@ del_string = "deleting "
 destinations = [
     "/media/userhome/cold_smb/backup/",
     "/media/userhome/colder_smb/backup/",
-    "/media/userhome/files/backup/",
 ]
 
 
@@ -16,7 +15,7 @@ def run_rsync(destination: str, dry_run=True):
         "-Prv",
         "--size-only",
         "--delete-during",
-        "--bwlimit=20480",
+        # "--bwlimit=20480",
         "/media/userhome/smb/backup/",
         destination
     ]
