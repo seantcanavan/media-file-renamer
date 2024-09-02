@@ -4,7 +4,7 @@ import re  # Import the regular expressions library
 from pathlib import Path
 
 # Define the directory to start from
-start_directory = Path('/media/userhome/smb/backup/pictures')
+start_directories = [Path('/media/userhome/smb/backup/pictures'), Path('/media/userhome/smb/backup/people/magnus/pictures')]
 
 # Define common multimedia file extensions in lower case
 MEDIA_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.mp4', '.mp3', '.avi', '.mov', '.mkv', '.heic', '.mov', '.bmp', '.tif', '.tiff', '.bmp2', '.tiff2', '.aae']
@@ -42,4 +42,5 @@ def rename_files(directory):
 
 # Run the script
 if __name__ == '__main__':
-    rename_files(start_directory)
+    rename_files(start_directories[0]) # rename my photos
+    rename_files(start_directories[1]) # rename magnus photos
