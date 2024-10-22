@@ -8,14 +8,15 @@ destinations = [
     "/media/userhome/colder_smb/backup/",
 ]
 
+# rsync -Prvc --ignore-times source/ destination/
+# "--bwlimit=20480",
 
 def run_rsync(destination: str, dry_run=True):
     command = [
         "rsync",
-        "-Prv",
-        "--size-only",
+        "-Prvc",
+        "--ignore-times",
         "--delete-during",
-        # "--bwlimit=20480",
         "/media/userhome/smb/backup/",
         destination
     ]
