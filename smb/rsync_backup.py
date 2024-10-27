@@ -5,7 +5,7 @@ del_string = "deleting "
 
 destinations = [
     "/media/userhome/cold_smb/backup/",
-    "/media/userhome/colder_smb/backup/",
+    # "/media/userhome/colder_smb/backup/",
 ]
 
 # rsync -Prvc --ignore-times source/ destination/
@@ -14,8 +14,8 @@ destinations = [
 def run_rsync(destination: str, dry_run=True):
     command = [
         "rsync",
-        "-Prvc",
-        "--ignore-times",
+        "-Prv",
+        "--size-only",
         "--delete-during",
         "/media/userhome/smb/backup/",
         destination
