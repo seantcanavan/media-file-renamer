@@ -35,9 +35,13 @@ def rename_files(directory):
                     print(f"Renaming {item} to {new_path}")
                     os.rename(item, new_path)
                 else:
-                    print(f"Item {item} has duplicate target {new_path}, will not rename")
-            # else:
-            #     print(f"Skipping {item}, already has timestamp.")
+                    expected_input = "yes DELETE"
+                    print(f"Item {item} has duplicate target {new_path}.")
+                    print(f"Item size: {os.path.getsize(item)}")
+                    print(f"New path size: {os.path.getsize(new_path)}")
+                    del_dup_tar = input(f"Enter {expected_input} to delete {item}")
+                    if del_dup_tar == expected_input:
+                        os.remove(item)
 
 
 # Run the script
