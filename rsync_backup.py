@@ -5,7 +5,7 @@ del_string = "deleting "
 
 destinations = [
     "/media/userhome/cold_smb/backup/",
-    # "/media/userhome/colder_smb/backup/",
+    "/media/userhome/colder_smb/backup/",
 ]
 
 # rsync -Prvc --ignore-times source/ destination/
