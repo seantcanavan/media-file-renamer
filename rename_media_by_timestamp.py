@@ -23,28 +23,42 @@ def timestamp_prefix_exists(filename):
 
 def rename_files(directory):
     """Recursively rename files with a timestamp prefix, ensure lower-cased extension, and skip if the new filename exists."""
-    for item in directory.rglob('*'):  # rglob method for recursive globbing
-        if item.is_file() and item.suffix.lower() in MEDIA_EXTENSIONS:
-            if not timestamp_prefix_exists(item.name):  # Check if filename starts with timestamp
-                creation_time = item.stat().st_ctime
-                formatted_timestamp = format_timestamp(creation_time)
-                name_without_extension, extension = os.path.splitext(item.name)
-                new_name = f"{formatted_timestamp}_{name_without_extension}{extension.lower()}"
-                new_path = item.parent / new_name
-                if not new_path.exists():  # Check if the new file name already exists
-                    print(f"Renaming {item} to {new_path}")
-                    os.rename(item, new_path)
+    for existing_path in directory.rglob('*'):  # rglob method for recursive globbing
+        if existing_path.is_file() and existing_path.suffix.lower() in MEDIA_EXTENSIONS:
+            if not timestamp_prefix_exists(existing_path.name):  # Check if filename starts with timestamp
+                existing_created_time = existing_path.stat().st_ctime
+                formatted_timestamp = format_timestamp(existing_created_time)
+                name_without_extension, extension = os.path.splitext(existing_path.name)
+                renamed_name = f"{formatted_timestamp}_{name_without_extension}{extension.lower()}"
+                renamed_path = existing_path.parent / renamed_name
+                if renamed_path.exists():
+                    existing_size = os.path.getsize(existing_path)
+                    renamed_size = os.path.getsize(renamed_path)
+                    print(f"existing_path {existing_path} has duplicate target for renamed_path: {renamed_path}.")
+                    print(f"existing size: {existing_size} - renamed size: {renamed_size}.")
+                    if existing_size == renamed_size:
+                        print(f"Sizes are identical: existing: {existing_size} and renamed: {renamed_size}. Deleting existing: {existing_path}.")
+                        os.remove(existing_path)
+                    else:
+                        delete_existing_input = "eXiStInG"
+                        delete_renamed_input = "rEnAmEd"
+                        delete_duplicate_input = input(f"Enter {delete_existing_input} to delete existing. Enter {delete_renamed_input} to delete renamed.")
+                        if delete_duplicate_input == delete_existing_input:
+                            print(f"Deleting existing: {existing_path}.")
+                            os.remove(existing_path)
+                        elif delete_renamed_input == delete_renamed_input:
+                            print(f"Deleting renamed: {renamed_path}.")
+                            os.remove(renamed_path)
+                            print(f"Renaming {existing_path} to {renamed_path}")
+                            os.rename(existing_path, renamed_path)
+                        else:
+                            raise ValueError("Deletion of renamed file failed.")
                 else:
-                    expected_input = "yes DELETE"
-                    print(f"Item {item} has duplicate target {new_path}.")
-                    print(f"Item size: {os.path.getsize(item)}")
-                    print(f"New path size: {os.path.getsize(new_path)}")
-                    del_dup_tar = input(f"Enter {expected_input} to delete {item}")
-                    if del_dup_tar == expected_input:
-                        os.remove(item)
+                    print(f"Renaming {existing_path} to {renamed_path}")
+                    os.rename(existing_path, renamed_path)
 
 
 # Run the script
 if __name__ == '__main__':
-    rename_files(start_directories[0]) # rename my photos
-    rename_files(start_directories[1]) # rename magnus photos
+    rename_files(start_directories[0])  # rename my photos
+    rename_files(start_directories[1])  # rename magnus photos
