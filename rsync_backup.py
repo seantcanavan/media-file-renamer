@@ -15,17 +15,13 @@ def run_rsync(destination: str, dry_run=True):
     command = [
         "rsync",
         "-Prv",
+        "--size-only",
         "--delete-during",
         "/media/userhome/smb/backup/",
         destination
     ]
     if dry_run:
         command.append("--dry-run")
-        command.append("--size-only")
-    else:
-        command.append("--checksum")
-        command.append("-t")
-        command.append("-v")
     print(f"command is {command}")
     result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     return result.stdout, result.stderr
