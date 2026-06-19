@@ -61,4 +61,4 @@ def rename_files(directory):
 # Run the script
 if __name__ == '__main__':
     rename_files(start_directories[0])  # rename my photos
-    rename_files(start_directories[1])  # rename magnus photos
+    rename_files(start_directories[1])  # rename family photos
