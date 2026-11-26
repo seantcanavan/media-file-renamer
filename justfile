@@ -11,7 +11,8 @@ verify-advocate:
         --source /media/userhome/smb/backup/people/sean/advocate \
         --copy cold=/media/userhome/cold_smb/advocate \
         --copy colder=/media/userhome/colder_smb/advocate \
-        --manifest-dir ~/advocate-manifests
+        --manifest-dir ~/advocate-manifests \
+        --expect-source-count 338
 
 # rename new photos on hot, then back up hot -> cold -> colder and advocate cold -> colder
 backup:

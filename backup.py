@@ -102,9 +102,12 @@ class DeletionNotApproved(Exception):
     pass
 
 
-def build_rsync_command(job: Job, dry_run: bool) -> list[str]:
+def build_rsync_command(job: Job, dry_run: bool, max_delete: int | None = None) -> list[str]:
     # Trailing slashes: copy the directory's contents, not the directory itself.
     cmd = ["rsync", "-Prv", "--size-only", "--delete-during", f"{job.source}/", f"{job.dest}/"]
+    if max_delete is not None:
+        # rsync skips every deletion past this count and exits 25 (3.0+: 0 means none).
+        cmd.append(f"--max-delete={max_delete}")
     if dry_run:
         cmd.append("--dry-run")
     return cmd
@@ -131,8 +134,10 @@ def run_job(
                 out("Input did not match. Type the phrase exactly, or press CTRL+C to stop.")
         except EOFError:
             raise DeletionNotApproved(f"{job.name}: deletions pending and no approval (stdin closed)") from None
-    out(f"== {job.name}: real run")
-    real = runner(build_rsync_command(job, dry_run=False))
+    # Cap the real run at the deletions shown (and approved) above: if the source
+    # changed in between, rsync refuses the extras instead of deleting them.
+    out(f"== {job.name}: real run (at most {len(deletions)} deletion(s))")
+    real = runner(build_rsync_command(job, dry_run=False, max_delete=len(deletions)))
     if real.returncode != 0:
         raise RsyncFailed(job, real.returncode, getattr(real, "stderr", None) or "")
 
@@ -149,4 +154,10 @@ def run_backups(
     for message in messages:
         out(message)
     for job in runnable:
-        run_job(job, runner=runner, ask=ask, out=out)
+        # A job can start hours after the first check: re-probe and re-check its
+        # shares right before it runs.
+        still_runnable, late_messages = preflight([job], probe, populated)
+        for message in late_messages:
+            out(message)
+        if still_runnable:
+            run_job(job, runner=runner, ask=ask, out=out)

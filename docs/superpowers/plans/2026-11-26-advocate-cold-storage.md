@@ -17,7 +17,7 @@
 - Never touch `/media/userhome/*` at all from Tasks 1–5 (code + tests only).
 - Hosts by IP: hot/cold `192.168.1.248`, colder `192.168.1.249`. SMB port `445`. Probe timeout `3.0` s.
 - Mount roots: hot `/media/userhome/smb`, cold `/media/userhome/cold_smb`, colder `/media/userhome/colder_smb`.
-- rsync flags for every job, verbatim: `rsync -Prv --size-only --delete-during SRC/ DEST/` (+ `--dry-run` for the dry pass). Commands are argv lists, never a shell string.
+- rsync flags for every job, verbatim: `rsync -Prv --size-only --delete-during SRC/ DEST/` (+ `--dry-run` for the dry pass; + `--max-delete=N` on the real pass, N = approved `deleting` lines, added after final review with Sean's OK). Commands are argv lists, never a shell string.
 - Approval phrase, verbatim: `I approve THESE files TO be DELETED`.
 - Media extensions, verbatim from today's script: `.jpg .jpeg .png .gif .mp4 .mp3 .avi .mov .mkv .heic .bmp .tif .tiff .bmp2 .tiff2 .aae` (matched case-insensitively).
 - Timestamp prefix format `%Y-%m-%d_%H-%M-%S` from `st_ctime`, followed by `_`; extension lower-cased.

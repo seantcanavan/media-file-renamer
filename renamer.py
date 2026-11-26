@@ -54,13 +54,18 @@ class RenameReport:
 
 
 def _identical(a: Path, b: Path) -> bool:
+    """Two distinct regular files with the same bytes. A symlink, or the same file
+    under another name, is never a duplicate: deleting one would lose the only copy."""
+    if a.is_symlink() or b.is_symlink() or os.path.samefile(a, b):
+        return False
     return a.stat().st_size == b.stat().st_size and sha256_file(a) == sha256_file(b)
 
 
 def _prefixed_twins_by_name(directory: Path, original: str) -> list[Path]:
     return sorted(
         p for p in directory.iterdir()
-        if p.is_file() and has_timestamp_prefix(p.name) and p.name[_PREFIX_WITH_SEP_LEN:] == original
+        if p.name[_PREFIX_WITH_SEP_LEN:] == original and has_timestamp_prefix(p.name)
+        and p.is_file() and not p.is_symlink()
     )
 
 

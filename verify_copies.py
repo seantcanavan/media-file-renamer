@@ -20,21 +20,37 @@ from hashing import sha256_file
 Tree = dict[str, tuple[int, str]]
 
 
+class UnsupportedEntry(Exception):
+    """A symlink, socket, device etc. in a tree being verified: refuse rather than skip."""
+
+
+def _raise(error: OSError) -> None:
+    raise error
+
+
 def hash_tree(root: Path, out: Callable[[str], None] = print) -> Tree:
     tree: Tree = {}
-    for dirpath, _, filenames in os.walk(root):
+    # onerror=_raise: a directory we cannot list must fail the run, never be skipped.
+    for dirpath, dirnames, filenames in os.walk(root, onerror=_raise):
+        for name in dirnames:
+            if (Path(dirpath) / name).is_symlink():
+                raise UnsupportedEntry(f"symlinked directory: {Path(dirpath) / name}")
         for name in sorted(filenames):
             path = Path(dirpath) / name
-            if not path.is_file() or path.is_symlink():
-                continue
+            if path.is_symlink() or not path.is_file():
+                raise UnsupportedEntry(f"not a regular file: {path}")
             rel = path.relative_to(root).as_posix()
             tree[rel] = (path.stat().st_size, sha256_file(path))
             out(f"[{root}] {len(tree)}: {rel}")
     return tree
 
 
-def compare(source: Tree, copies: dict[str, Tree]) -> list[str]:
+def compare(source: Tree, copies: dict[str, Tree], expect_source_count: int | None = None) -> list[str]:
     problems: list[str] = []
+    if not source:
+        problems.append("source is empty (share not mounted?)")
+    if expect_source_count is not None and len(source) != expect_source_count:
+        problems.append(f"source has {len(source)} files, expected {expect_source_count}")
     for label, copy in copies.items():
         for rel, entry in sorted(source.items()):
             if rel not in copy:
@@ -67,6 +83,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--source", type=Path, required=True)
     parser.add_argument("--copy", action="append", required=True, metavar="LABEL=DIR")
     parser.add_argument("--manifest-dir", type=Path, required=True)
+    parser.add_argument("--expect-source-count", type=int, default=None,
+                        help="fail unless the source holds exactly this many files")
     args = parser.parse_args(argv)
 
     roots = {"source": args.source}
@@ -82,14 +100,18 @@ def main(argv: list[str] | None = None) -> int:
 
     with ThreadPoolExecutor(max_workers=len(roots)) as pool:
         futures = {label: pool.submit(hash_tree, root) for label, root in roots.items()}
-        trees = {label: f.result() for label, f in futures.items()}
+        try:
+            trees = {label: f.result() for label, f in futures.items()}
+        except (OSError, UnsupportedEntry) as e:
+            print(f"FAIL: could not read every file: {e}")
+            return 1
 
     args.manifest_dir.mkdir(parents=True, exist_ok=True)
     for label, tree in trees.items():
         write_manifest(tree, args.manifest_dir / f"{label}.sha256")
 
     source = trees.pop("source")
-    problems = compare(source, trees)
+    problems = compare(source, trees, args.expect_source_count)
     for label, tree in [("source", source), *trees.items()]:
         print(f"{label}: {len(tree)} files, {sum(s for s, _ in tree.values()):,} bytes")
     if problems:

@@ -109,6 +109,13 @@ class RenamerTest(unittest.TestCase):
         renamed = self.root / f"{PREFIX}_It＂s ⧸ a & b's.mov"
         self.assertEqual(renamed.read_bytes(), b"video")
 
+    def test_symlink_twin_never_causes_deletion_of_real_file(self):
+        new = self.write("IMG_9.jpg", b"only copy")
+        (self.root / f"{OLD}_IMG_9.jpg").symlink_to(new)
+        report = rename_files(self.root, timestamp_of=fixed_ts)
+        self.assertEqual(report.deleted_redumps, [])
+        self.assertEqual((self.root / f"{PREFIX}_IMG_9.jpg").read_bytes(), b"only copy")
+
     def test_never_prompts(self):
         import builtins
         orig = builtins.input

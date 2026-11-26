@@ -104,7 +104,11 @@ anything, require the typed approval phrase, as today.
 colder_smb/advocate/`, same dry run + approval guard.
 
 **All rsyncs:** return code checked; non-zero stops the run and is reported with
-stderr.
+stderr. The real run adds `--max-delete=N`, N = the number of `deleting` lines in
+the dry run just approved (0 when none), so a source that changed in between
+cannot delete more than was shown; rsync skips the excess and exits 25, which
+stops the run (added after final review, approved by Sean). Each job re-probes
+its hosts and re-checks its shares right before it runs.
 
 ## Builder's calls (Claude's, correctable)
 

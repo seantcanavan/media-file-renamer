@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from verify_copies import compare, hash_tree, write_manifest
+from verify_copies import UnsupportedEntry, compare, hash_tree, write_manifest
 
 quiet = lambda *a: None
 
@@ -64,6 +64,35 @@ class VerifyCopiesTest(unittest.TestCase):
         result = subprocess.run(["sha256sum", "--strict", "-c", str(manifest)], cwd=self.base / "hot",
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_unreadable_subdir_fails_instead_of_skipping(self):
+        root = self.base / "hot"
+        locked = root / "locked"
+        locked.mkdir(parents=True)
+        (locked / "only_on_hot.mkv").write_bytes(b"x")
+        locked.chmod(0)
+        try:
+            with self.assertRaises(OSError):
+                hash_tree(root, out=quiet)
+        finally:
+            locked.chmod(0o755)
+
+    def test_symlink_in_tree_fails(self):
+        root = self.base / "hot"
+        root.mkdir()
+        (root / "real.mkv").write_bytes(b"x")
+        (root / "link.mkv").symlink_to(root / "real.mkv")
+        with self.assertRaises(UnsupportedEntry):
+            hash_tree(root, out=quiet)
+
+    def test_empty_source_is_a_problem(self):
+        self.assertTrue(compare({}, {"cold": {}, "colder": {}}))
+
+    def test_expected_count_mismatch_is_a_problem(self):
+        src = self.tree("hot", self.FILES)
+        copies = {"cold": self.tree("cold", self.FILES)}
+        self.assertEqual(compare(src, copies, expect_source_count=3), [])
+        self.assertTrue(any("expected 338" in p for p in compare(src, copies, expect_source_count=338)))
 
     def test_cli_exit_codes(self):
         self.tree("hot", self.FILES)
