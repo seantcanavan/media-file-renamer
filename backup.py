@@ -10,6 +10,7 @@ destination plus --delete-during is how a mirror gets wiped.
 """
 import os
 import socket
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
@@ -84,3 +85,68 @@ def preflight(
             raise BrokenChain(f"{job.dest} is missing or empty (share not mounted?); refusing to run {job.name}")
         runnable.append(job)
     return runnable, messages
+
+
+APPROVAL_PHRASE = "I approve THESE files TO be DELETED"
+
+
+class RsyncFailed(Exception):
+    def __init__(self, job: Job, returncode: int, stderr: str):
+        super().__init__(f"rsync for {job.name} exited {returncode}: {stderr.strip()}")
+        self.job = job
+        self.returncode = returncode
+        self.stderr = stderr
+
+
+class DeletionNotApproved(Exception):
+    pass
+
+
+def build_rsync_command(job: Job, dry_run: bool) -> list[str]:
+    # Trailing slashes: copy the directory's contents, not the directory itself.
+    cmd = ["rsync", "-Prv", "--size-only", "--delete-during", f"{job.source}/", f"{job.dest}/"]
+    if dry_run:
+        cmd.append("--dry-run")
+    return cmd
+
+
+def run_job(
+    job: Job,
+    runner: Callable = subprocess.run,
+    ask: Callable[[str], str] = input,
+    out: Callable[[str], None] = print,
+) -> None:
+    out(f"== {job.name}: dry run")
+    dry = runner(build_rsync_command(job, dry_run=True), capture_output=True, text=True)
+    if dry.returncode != 0:
+        raise RsyncFailed(job, dry.returncode, dry.stderr or "")
+    out(dry.stdout)
+    deletions = [line for line in dry.stdout.splitlines() if line.startswith("deleting ")]
+    if deletions:
+        out(f"{len(deletions)} deletion(s) on {job.dest}:")
+        for line in deletions:
+            out(f"  {line}")
+        try:
+            while ask(f"Type '{APPROVAL_PHRASE}' to proceed with deletion: ") != APPROVAL_PHRASE:
+                out("Input did not match. Type the phrase exactly, or press CTRL+C to stop.")
+        except EOFError:
+            raise DeletionNotApproved(f"{job.name}: deletions pending and no approval (stdin closed)") from None
+    out(f"== {job.name}: real run")
+    real = runner(build_rsync_command(job, dry_run=False))
+    if real.returncode != 0:
+        raise RsyncFailed(job, real.returncode, getattr(real, "stderr", None) or "")
+
+
+def run_backups(
+    jobs: list[Job] | None = None,
+    probe: Callable[[str], bool] = host_is_up,
+    populated: Callable[[Path], bool] = dir_is_populated,
+    runner: Callable = subprocess.run,
+    ask: Callable[[str], str] = input,
+    out: Callable[[str], None] = print,
+) -> None:
+    runnable, messages = preflight(jobs if jobs is not None else default_jobs(), probe, populated)
+    for message in messages:
+        out(message)
+    for job in runnable:
+        run_job(job, runner=runner, ask=ask, out=out)
