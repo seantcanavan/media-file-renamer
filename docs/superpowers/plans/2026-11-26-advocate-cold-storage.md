@@ -10,6 +10,36 @@
 
 **Spec:** `docs/superpowers/specs/2026-11-26-advocate-cold-storage-design.md`
 
+## Handoff status (2026-11-26) — READ FIRST when resuming on the new machine
+
+Sean moved to a machine with faster network before any copying. Resume at **Task 6, M1**.
+
+**Done:** Tasks 1–5 + final review (opus reviewer, "with fixes"; all Critical/Important fixed with RED→GREEN tests). Last code commit `5152af9`. `just test` → 51 tests OK. Nothing under `/media` has been modified by Claude; only names/sizes were listed.
+
+**Rules Sean set for this work (apply to the new session):**
+- Sean runs Claude Code in manual mode and wants each migration step shown as an exact command, then run only after Sean says go. One step at a time. Any surprise → stop.
+- Photos are off limits: never rename/move/delete/write anything under `smb/backup/pictures` or `smb/backup/people/magnus/pictures`. Never run `just backup` / `media_backup.py`; Sean does (M6).
+- Deleting hot advocate (M5) needs `just verify-advocate` exit 0 **and** Sean's explicit go.
+- Sean kept the commits made so far; commit + push code/doc changes per `~/.claude/CLAUDE.md` (main only, no attribution lines).
+- The YouTube archive downloader that writes into advocate is stopped (Sean cancelled it) and stays stopped until M7.
+
+**New-machine prerequisites (check in M1 before anything else):** `/media/userhome/smb`, `/media/userhome/cold_smb`, `/media/userhome/colder_smb` mounted at those exact paths (they were autofs CIFS mounts of `//192.168.1.248/smb`, `//192.168.1.248/cold_smb`, `//192.168.1.249/colder_smb`); .249 powered on for M2–M4; `python` ≥ 3.10, `rsync` ≥ 3.0, `just`, `sha256sum`; `just test` passes on that machine.
+
+**Facts measured on 2026-11-26 (name + size only; M1 re-measures):**
+- hot `smb/backup/people/sean/advocate`: 338 files, 2,150,335,502,503 bytes. cold `cold_smb/backup/people/sean/advocate`: identical names + sizes.
+- colder `colder_smb/backup/people/sean/advocate`: 127 files = 120 matching hot + 7 colder-only (50.6 GB yt-dlp leftovers: `2020 08 13 - Stun Resist Diesel - Blackwing Lair & Molten Core & Zul'Gurub & Scholomance.{f251.webm,f308.webm,temp.mkv,webp}` and `2021 04 14 - Stun Resist Diesel - Naxxramas.{f251.webm,f308.webm,webp}`; the finished `.mkv` of both exists on all three). 218 hot files (448.3 GB) missing on colder. No same-name size mismatches.
+- After M3 both cold and colder advocate should hold 345 files (338 + 7).
+- Free space then: hot 2.3T of 5.6T, cold 19T of 22T, colder 39T of 42T.
+
+**Rulings made during execution (the ledger is git-ignored and did not travel):**
+- T2: preflight checks a job's source even when its destination host is off (a missing `cold/advocate` is a broken chain with .249 off too). Cost if wrong: none, only stricter.
+- Final: `verify_copies` fails on unreadable dirs, symlinks/special files, an empty source, and a source count ≠ `--expect-source-count` (338 in `just verify-advocate`).
+- Final: each job re-probes hosts and re-checks shares right before it runs.
+- Final: renamer never treats a symlink or the same file as a duplicate (raised from minor: effect would be losing the only copy of a photo).
+- Final (Sean approved): real rsync run gets `--max-delete=N`, N = approved dry-run deletions.
+
+**Deferred minors (not fixed; none can lose data):** a destination file replaced by a source dir of the same name is deleted with no `deleting` line (pre-existing rsync behaviour); renamer stats the whole folder per new file over SMB (slow for huge dumps); dry-run stderr not shown when rc 0, and real-run failure text has empty stderr (it streams live); OSError/UnicodeDecodeError show a traceback rather than `STOPPED:` (fails safe).
+
 ## Global Constraints
 
 - Work on `main`; no branches/worktrees/PRs. Commits: explicit paths, no `-s`, no `Co-Authored-By` or any AI attribution. **Commit hold:** Sean asked Claude to hold all commits and pushes; commit steps run only once Sean lifts the hold.
@@ -226,4 +256,4 @@ Each step: Claude shows the exact command, Sean says go, Claude runs it and show
 - [ ] **M4 Checksum proof.** `just verify-advocate` in the background (~6.5 TB read). Must exit 0 with no problems. Manifests stay in `~/advocate-manifests`.
 - [ ] **M5 Delete advocate from hot** — only with exit 0 from M4 **and** Sean's explicit go. Recheck that hot advocate still has exactly the 338 files of M1 (nothing new since hashing). Then `rm -rv -- /media/userhome/smb/backup/people/sean/advocate`. Check: path gone; `df -h /media/userhome/smb` shows ~2.15 TB freed.
 - [ ] **M6 First real run — Sean runs `just backup`.** Claude does not run it (it includes the rename step). Expected: the primary dry runs show **no** `deleting` lines (M2 already moved advocate out of `backup/` on cold and colder), and the advocate dry run shows none either (M3 made the two identical). Any `deleting` line at all on this first run → don't type the phrase; stop and look together.
-- [ ] **M7 Wrap up.** Sean repoints the downloader at `/media/userhome/cold_smb/advocate`. Claude removes its `/tmp` scratch files from brainstorming (`/tmp/tmp.LxC0rXEGZN`, `/tmp/advo_cmp.py`, `/tmp/dup_by_orig.py`).
+- [ ] **M7 Wrap up.** Sean repoints the downloader at `/media/userhome/cold_smb/advocate`. Claude deletes any scratch files it made on the new machine. (The brainstorming scratch files on the old machine were already deleted at handoff.)
