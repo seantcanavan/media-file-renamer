@@ -12,7 +12,7 @@
 
 ## Handoff status (2026-11-26) — READ FIRST when resuming on the new machine
 
-Sean moved to a machine with faster network before any copying. Resume at **Task 6, M1**.
+Sean moved to a machine with faster network before any copying. **Progress (2026-11-27): M1–M5 done** on the new machine (M3.1 changed, see Task 6). Hot advocate deleted after `just verify-advocate` exit 0; cold and colder each hold the same 338 verified files at `<share>/advocate`, manifests in `~/advocate-manifests`. Next: **M6 (Sean runs `just backup`)**, then M7.
 
 **Done:** Tasks 1–5 + final review (opus reviewer, "with fixes"; all Critical/Important fixed with RED→GREEN tests). Last code commit `5152af9`. `just test` → 51 tests OK. Nothing under `/media` has been modified by Claude; only names/sizes were listed.
 
@@ -28,7 +28,7 @@ Sean moved to a machine with faster network before any copying. Resume at **Task
 **Facts measured on 2026-11-26 (name + size only; M1 re-measures):**
 - hot `smb/backup/people/sean/advocate`: 338 files, 2,150,335,502,503 bytes. cold `cold_smb/backup/people/sean/advocate`: identical names + sizes.
 - colder `colder_smb/backup/people/sean/advocate`: 127 files = 120 matching hot + 7 colder-only (50.6 GB yt-dlp leftovers: `2020 08 13 - Stun Resist Diesel - Blackwing Lair & Molten Core & Zul'Gurub & Scholomance.{f251.webm,f308.webm,temp.mkv,webp}` and `2021 04 14 - Stun Resist Diesel - Naxxramas.{f251.webm,f308.webm,webp}`; the finished `.mkv` of both exists on all three). 218 hot files (448.3 GB) missing on colder. No same-name size mismatches.
-- After M3 both cold and colder advocate should hold 345 files (338 + 7).
+- After M3 both cold and colder advocate should hold 338 files, the same as hot (the 7 partials were dropped from colder in M3.1; see Task 6).
 - Free space then: hot 2.3T of 5.6T, cold 19T of 22T, colder 39T of 42T.
 
 **Rulings made during execution (the ledger is git-ignored and did not travel):**
@@ -247,13 +247,13 @@ Hash only when sizes match. No `input()` anywhere.
 
 Each step: Claude shows the exact command, Sean says go, Claude runs it and shows the result. Any surprise → stop. All paths are fixed; nothing under `pictures` is touched.
 
-- [ ] **M1 Freeze.** Sean confirms the downloader is stopped and no backup will run until M6. Claude re-runs the name+size comparison from brainstorming; expected: hot 338 files / 2,150,335,502,503 bytes, cold identical, colder 127 files.
-- [ ] **M2 Rename on cold and colder.** Precheck: `cold_smb/advocate` and `colder_smb/advocate` do not exist. Run `python -I -c "import os; os.rename('/media/userhome/cold_smb/backup/people/sean/advocate', '/media/userhome/cold_smb/advocate')"`, then the same for colder. A failure (e.g. `EXDEV`) means nothing moved → stop and re-plan. Check: file counts at the new paths match M1.
-- [ ] **M3 Make cold and colder identical, without deleting.**
-  1. `rsync -Prv --ignore-existing --dry-run /media/userhome/colder_smb/advocate/ /media/userhome/cold_smb/advocate/` → must list exactly the 7 colder-only files; then the same without `--dry-run`.
+- [x] **M1 Freeze.** Sean confirms the downloader is stopped and no backup will run until M6. Claude re-runs the name+size comparison from brainstorming; expected: hot 338 files / 2,150,335,502,503 bytes, cold identical, colder 127 files.
+- [x] **M2 Rename on cold and colder.** Precheck: `cold_smb/advocate` and `colder_smb/advocate` do not exist. Run `python -I -c "import os; os.rename('/media/userhome/cold_smb/backup/people/sean/advocate', '/media/userhome/cold_smb/advocate')"`, then the same for colder. A failure (e.g. `EXDEV`) means nothing moved → stop and re-plan. Check: file counts at the new paths match M1.
+- [x] **M3 Make cold and colder identical, without deleting.**
+  1. ~~`rsync -Prv --ignore-existing --dry-run /media/userhome/colder_smb/advocate/ /media/userhome/cold_smb/advocate/` → must list exactly the 7 colder-only files; then the same without `--dry-run`.~~ **Changed 2026-11-26 (Sean's call):** the 7 colder-only files were 2024-10-31 yt-dlp partials of `.mkv` files present on all three shares, so they were deleted from colder (explicit 7-path `rm -v`, after checking both `.mkv` sizes on cold and colder) instead of being copied to cold. Colder then held 120 files.
   2. `rsync -Prv --size-only --dry-run /media/userhome/cold_smb/advocate/ /media/userhome/colder_smb/advocate/` → must list exactly the 218 missing files and **no** `deleting` lines; then the real run in the background (~448 GB).
-  3. Check: cold and colder both 345 files, same names and sizes.
-- [ ] **M4 Checksum proof.** `just verify-advocate` in the background (~6.5 TB read). Must exit 0 with no problems. Manifests stay in `~/advocate-manifests`.
-- [ ] **M5 Delete advocate from hot** — only with exit 0 from M4 **and** Sean's explicit go. Recheck that hot advocate still has exactly the 338 files of M1 (nothing new since hashing). Then `rm -rv -- /media/userhome/smb/backup/people/sean/advocate`. Check: path gone; `df -h /media/userhome/smb` shows ~2.15 TB freed.
+  3. Check: cold and colder both 338 files (was 345 before the change in step 1), same names and sizes, both equal to hot.
+- [x] **M4 Checksum proof.** `just verify-advocate` in the background (~6.5 TB read). Must exit 0 with no problems. Manifests stay in `~/advocate-manifests`.
+- [x] **M5 Delete advocate from hot** — only with exit 0 from M4 **and** Sean's explicit go. Recheck that hot advocate still has exactly the 338 files of M1 (nothing new since hashing). Then `rm -rv -- /media/userhome/smb/backup/people/sean/advocate`. Check: path gone; `df -h /media/userhome/smb` shows ~2.15 TB freed.
 - [ ] **M6 First real run — Sean runs `just backup`.** Claude does not run it (it includes the rename step). Expected: the primary dry runs show **no** `deleting` lines (M2 already moved advocate out of `backup/` on cold and colder), and the advocate dry run shows none either (M3 made the two identical). Any `deleting` line at all on this first run → don't type the phrase; stop and look together.
 - [ ] **M7 Wrap up.** Sean repoints the downloader at `/media/userhome/cold_smb/advocate`. Claude deletes any scratch files it made on the new machine. (The brainstorming scratch files on the old machine were already deleted at handoff.)
